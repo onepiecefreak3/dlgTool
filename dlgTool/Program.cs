@@ -14,12 +14,14 @@ namespace dlgTool
     {
         static Dictionary<string, Font> langs = new Dictionary<string, Font>
         {
-            ["uni"] = Font.Universal
+            ["edit"] = Font.Edited,
+            ["orig"] = Font.Original
         };
 
-        static Dictionary<string, Platform> platforms = new Dictionary<string, Platform>
+        static Dictionary<string, Game> games = new Dictionary<string, Game>
         {
-            //["ds"] = Platform.DS
+            ["aatri"] = Game.AATri,
+            ["aj3ds"] = Game.AJ3DS,
         };
 
         class DlgEntry
@@ -28,81 +30,174 @@ namespace dlgTool
             public int size;
         }
 
-        static void Main(string[] args)
+        class Options
         {
-            Font _font = Font.Default;
-            Platform _platform = Platform.ThreeDS;
+            public string mode = "";
+            public string path = "";
+            public Font lang = Font.Original;
+            public Game game = Game.AATri;
+            public bool isBinary = false;
+        }
 
-            if (args.Count() < 2)
+        static Options ParseArgs(string[] args)
+        {
+            if (args.Count() == 0)
             {
-                Console.WriteLine("Usage: dlgTool.exe <mode> <input> [lang=default] [platform=3ds]\n\nAvailable modes:" +
-                    "\n-e\tExtract a given dlg\n\t<input> needs to be a dlg file" +
-                    "\n-c\tCreates a dlg by a given folder of txt's\n\t<input> needs to be a folder of txt's" +
-                    "\n\n[lang] is an optional parameter. If not specified the tool uses the charset of the original game to convert the files." +
-                    "\nIf specified it uses the given charset to convert the files.\nSupported languages are: " + langs.Aggregate("", (o, e) => o + e.Key + ((langs.Last().Key == e.Key) ? "" : ", ")) +
-                    "\n\n[platform] is an optional parameter. If not specified the tool uses the default platform, which is the 3DS, to convert the files." +
-                    "\nIf specified it uses the given platform to convert the files.\nSupported platforms are: " + platforms.Aggregate("", (o, e) => o + e.Key + ((platforms.Last().Key == e.Key) ? "" : ", ")));
-                return;
-            }
-            if (args[0] == "-h")
-            {
-                Console.WriteLine("Usage: dlgTool.exe <mode> <input> [lang=default] [platform=3ds]\n\nAvailable modes:" +
-                    "\n-e\tExtract a given dlg\n\t<input> needs to be a dlg file" +
-                    "\n-c\tCreates a dlg by a given folder of txt's\n\t<input> needs to be a folder of txt's" +
-                    "\n\n[lang] is an optional parameter. If not specified the tool uses the charset of the original game to convert the files." +
-                    "\nIf specified it uses the given charset to convert the files.\nSupported languages are: " + langs.Aggregate("", (o, e) => o + e.Key + ((langs.Last().Key == e.Key) ? "" : ", ")) +
-                    "\n\n[platform] is an optional parameter. If not specified the tool uses the default platform, which is the 3DS, to convert the files." +
-                    "\nIf specified it uses the given platform to convert the files.\nSupported platforms are: " + platforms.Aggregate("", (o, e) => o + e.Key + ((platforms.Last().Key == e.Key) ? "" : ", ")));
-                return;
-            }
-            if (args[0] != "-e" && args[0] != "-c")
-            {
-                Console.WriteLine("Unknown mode\n\nAvailable modes:" +
-                    "\n-e\tExtract a given dlg\n\t<input> needs to be a dlg file" +
-                    "\n-c\tCreates a dlg by a given folder of txt's\n\t<input> needs to be a folder of txt's");
-                return;
+                Console.WriteLine($"" +
+                        $"Usage: dlgTool.exe [PARAMS]\n\n" +
+                        $"PARAMS:\n" +
+                        $"\t-m <mode> - The mode to execute in. Can be \"extract\" or \"create\"\n" +
+                        $"\t-f <path> - The file or folder path. Needs to be a file for \"extract\" and a folder for \"create\"\n" +
+                        $"\t-l <font> - OPTIONAL; Can be one of the following: " + langs.Aggregate("", (o, e) => o + e.Key + ((langs.Last().Key == e.Key) ? "" : ", ")) + "\n" +
+                        $"\t\tBy default it's \"orig\"\n" +
+                        $"\t-p <game> - OPTIONAL; Can be one of the following: " + games.Aggregate("", (o, e) => o + e.Key + ((games.Last().Key == e.Key) ? "" : ", ")) + "\n" +
+                        $"\t\tBy default it's \"aatri\"\n\n" +
+                        $"\t-h - Shows this help\n" +
+                        $"\t-b - Extracts or recreates by using the binary files instead of txt's");
+                Environment.Exit(0);
             }
 
-            if (args.Count() > 2)
+            var opt = new Options();
+            List<string> modes = new List<string> { "-m", "-f", "-l", "-g", "-b", "-h" };
+
+            for (int i = 0; i < args.Count(); i++)
             {
-                if (!langs.ContainsKey(args[2]))
+                var param = args[i];
+                if (!modes.Contains(param))
                 {
-                    Console.WriteLine("Supported languages are: " + langs.Aggregate("", (o, e) => o + e.Key + ((langs.Last().Key == e.Key) ? "" : ", ")) + "\nUsing default language.");
+                    Console.WriteLine($"{param} is an unknown mode.");
+                    Environment.Exit(0);
                 }
-                else
+                if (param != "-b" && param != "-h")
                 {
-                    _font = langs[args[2]];
+                    if (i + 1 < args.Count())
+                    {
+                        if (args[i + 1][0] == '-')
+                        {
+                            Console.WriteLine($"No value is given for {param}");
+                            Environment.Exit(0);
+                        }
+                        else
+                        {
+                            var value = args[i++ + 1];
+                            switch (param)
+                            {
+                                case "-m":
+                                    if (value != "extract" && value != "create")
+                                    {
+                                        Console.WriteLine($"Mode can only be \"extract\" or \"create\".");
+                                        Environment.Exit(0);
+                                    }
+                                    else
+                                    {
+                                        opt.mode = value;
+                                    }
+                                    break;
+                                case "-f":
+                                    opt.path = value;
+                                    break;
+                                case "-l":
+                                    if (!langs.ContainsKey(value))
+                                    {
+                                        Console.WriteLine($"Selected Font {value} isn't supported.");
+                                        Environment.Exit(0);
+                                    }
+                                    else
+                                    {
+                                        opt.lang = langs[value];
+                                    }
+                                    break;
+                                case "-g":
+                                    if (!games.ContainsKey(value))
+                                    {
+                                        Console.WriteLine($"Selected Game {value} isn't supported.");
+                                        Environment.Exit(0);
+                                    }
+                                    else
+                                    {
+                                        opt.game = games[value];
+                                    }
+                                    break;
+                            }
+                        }
+                    }
+                    else
+                    {
+                        Console.WriteLine($"No value is given for {param}");
+                        Environment.Exit(0);
+                    }
+                }
+                else if (param == "-h")
+                {
+                    Console.WriteLine($"" +
+                        $"Usage: dlgTool.exe [PARAMS]\n\n" +
+                        $"PARAMS:\n" +
+                        $"\t-m <mode> - The mode to execute in. Can be \"extract\" or \"create\"\n" +
+                        $"\t-f <path> - The file or folder path. Needs to be a file for \"extract\" and a folder for \"create\"" +
+                        $"\t-l <font> - OPTIONAL; Can be one of the following: " + langs.Aggregate("", (o, e) => o + e.Key + ((langs.Last().Key == e.Key) ? "" : ", ")) + "\n" +
+                        $"\t\tBy default it's \"orig\"\n" +
+                        $"\t-p <game> - OPTIONAL; Can be one of the following: " + games.Aggregate("", (o, e) => o + e.Key + ((games.Last().Key == e.Key) ? "" : ", ")) + "\n" +
+                        $"\t\tBy default it's \"aatri\"\n\n" +
+                        $"\t-h - Shows this help\n" +
+                        $"\t-b - Extracts or recreates by using the binary files instead of txt's");
+                    Environment.Exit(0);
+                }
+                else if (param == "-b")
+                {
+                    opt.isBinary = true;
+                }
+
+            }
+
+            //Check set options
+            if (opt.mode == String.Empty)
+            {
+                Console.WriteLine($"No Mode is given.");
+                Environment.Exit(0);
+            }
+            if (opt.path == String.Empty)
+            {
+                Console.WriteLine($"No Path is given.");
+                Environment.Exit(0);
+            }
+            if (opt.mode == "create")
+            {
+                if ((File.GetAttributes(opt.path) & FileAttributes.Directory) != FileAttributes.Directory)
+                {
+                    Console.WriteLine($"Path has to be a folder.");
+                    Environment.Exit(0);
+                }
+                if (!Directory.Exists(opt.path))
+                {
+                    Console.WriteLine($"Folder doesn't exist.");
+                    Environment.Exit(0);
+                }
+            }
+            if (opt.mode == "extract")
+            {
+                if ((File.GetAttributes(opt.path) & FileAttributes.Directory) == FileAttributes.Directory)
+                {
+                    Console.WriteLine($"Path has to be a file.");
+                    Environment.Exit(0);
+                }
+                if (!File.Exists(opt.path))
+                {
+                    Console.WriteLine($"File doesn't exist.");
+                    Environment.Exit(0);
                 }
             }
 
-            if (args.Count() > 3)
+            return opt;
+        }
+
+        static void Main(string[] args2)
+        {
+            var options = ParseArgs(args2);
+
+            if (options.mode == "extract")
             {
-                if (!platforms.ContainsKey(args[3]))
-                {
-                    Console.WriteLine("Supported platforms are: " + platforms.Aggregate("", (o, e) => o + e.Key + ((platforms.Last().Key == e.Key) ? "" : ", ")) + "\nUsing default platform.");
-                }
-                else
-                {
-                    _platform = platforms[args[3]];
-                }
-            }
-
-            if (args[0] == "-e")
-            {
-                if (!File.Exists(args[1]))
-                {
-                    Console.WriteLine($"{args[1]} doesn't exist.");
-                    return;
-                }
-
-                if ((File.GetAttributes(args[1]) & FileAttributes.Directory) == FileAttributes.Directory)
-                {
-                    Console.WriteLine($"{args[1]} is a directory. Need a dlg file.");
-                    return;
-                }
-
                 var sections = new List<byte[]>();
-                using (var br = new BinaryReaderY(File.OpenRead(args[1])))
+                using (var br = new BinaryReaderY(File.OpenRead(options.path)))
                 {
                     try
                     {
@@ -122,7 +217,7 @@ namespace dlgTool
                     }
 
                 }
-                var writeDir = Path.Combine(Path.GetDirectoryName(args[1]), Path.GetFileNameWithoutExtension(args[1]));
+                var writeDir = Path.Combine(Path.GetDirectoryName(options.path), Path.GetFileNameWithoutExtension(options.path));
                 if (!Directory.Exists(writeDir))
                     Directory.CreateDirectory(writeDir);
 
@@ -131,31 +226,22 @@ namespace dlgTool
                 {
                     using (var br = new BinaryReaderY(new MemoryStream(s)))
                     {
-                        var enc = new AAEncoding(_font, _platform);
-
-                        File.WriteAllText(Path.Combine(writeDir, $"{txtCount++}.txt"), enc.GetSectionText(s));
-
-                        //Debug
-                        //File.WriteAllBytes(Path.Combine(writeDir, $"{txtCount - 1}.bin"), s);
+                        if (options.isBinary)
+                        {
+                            File.WriteAllBytes(Path.Combine(writeDir, $"{txtCount++:000}.bin"), s);
+                        }
+                        else
+                        {
+                            var enc = new AAEncoding(options.lang, options.game);
+                            File.WriteAllText(Path.Combine(writeDir, $"{txtCount++:000}.txt"), enc.GetSectionText(s));
+                        }
                     }
                 }
             }
-            else if (args[0] == "-c")
+            else if (options.mode == "create")
             {
-                if (!Directory.Exists(args[1]))
-                {
-                    Console.WriteLine($"{args[1]} doesn't exist.");
-                    return;
-                }
-
-                if ((File.GetAttributes(args[1]) & FileAttributes.Directory) != FileAttributes.Directory)
-                {
-                    Console.WriteLine($"{args[1]} is a file. Need a directory of txt's.");
-                    return;
-                }
-
-                var enc = new AAEncoding(_font, _platform);
-                var files = Directory.GetFiles(args[1]).Where(f => Path.GetExtension(f) == ".txt").ToList();
+                var enc = new AAEncoding(options.lang, options.game);
+                var files = Directory.GetFiles(options.path).Where(f => Path.GetExtension(f) == ((options.isBinary) ? ".bin" : ".txt")).OrderBy(name => name).ToList();
                 var entries = new List<DlgEntry>();
 
                 var ms = new MemoryStream();
@@ -165,17 +251,22 @@ namespace dlgTool
 
                     foreach (var file in files)
                     {
-                        var sectionText = File.ReadAllText(file).Replace("\r\n", "");
+                        byte[] compBytes = null;
+                        if (options.isBinary)
+                        {
+                            compBytes = Nintendo.Compress(new MemoryStream(File.ReadAllBytes(file)), Nintendo.Method.LZ10);
+                        }
+                        else
+                        {
+                            var sectionText = File.ReadAllText(file).Replace("\r\n", "");
+                            var bytes = enc.GetBytes(sectionText);
+                            compBytes = Nintendo.Compress(new MemoryStream(bytes), Nintendo.Method.LZ10);
+                        }
 
-                        var bytes = enc.GetBytes(sectionText);
-                        var compBytes = Nintendo.Compress(new MemoryStream(bytes), Nintendo.Method.LZ10);
                         entries.Add(new DlgEntry { offset = (int)bw.BaseStream.Position, size = compBytes.Length });
 
                         bw.Write(compBytes);
                         bw.BaseStream.Position = (bw.BaseStream.Position + 3) & ~3;
-
-                        //Debug
-                        //File.WriteAllBytes(file.Replace(".txt", "_new.bin"), bytes);
                     }
 
                     bw.BaseStream.Position = 0;
@@ -184,7 +275,7 @@ namespace dlgTool
                         bw.WriteStruct(entry);
                 }
 
-                File.WriteAllBytes("C:\\Users\\Kirito\\Desktop\\new.dlg", ms.ToArray());
+                File.WriteAllBytes("new.dlg", ms.ToArray());
             }
         }
     }

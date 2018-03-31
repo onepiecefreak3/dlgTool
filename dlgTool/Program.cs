@@ -50,7 +50,7 @@ namespace dlgTool
                         $"\t-f <path> - The file or folder path. Needs to be a file for \"extract\" and a folder for \"create\"\n" +
                         $"\t-l <font> - OPTIONAL; Can be one of the following: " + langs.Aggregate("", (o, e) => o + e.Key + ((langs.Last().Key == e.Key) ? "" : ", ")) + "\n" +
                         $"\t\tBy default it's \"orig\"\n" +
-                        $"\t-p <game> - OPTIONAL; Can be one of the following: " + games.Aggregate("", (o, e) => o + e.Key + ((games.Last().Key == e.Key) ? "" : ", ")) + "\n" +
+                        $"\t-g <game> - OPTIONAL; Can be one of the following: " + games.Aggregate("", (o, e) => o + e.Key + ((games.Last().Key == e.Key) ? "" : ", ")) + "\n" +
                         $"\t\tBy default it's \"aatri\"\n\n" +
                         $"\t-h - Shows this help\n" +
                         $"\t-b - Extracts or recreates by using the binary files instead of txt's");
@@ -136,7 +136,7 @@ namespace dlgTool
                         $"\t-f <path> - The file or folder path. Needs to be a file for \"extract\" and a folder for \"create\"" +
                         $"\t-l <font> - OPTIONAL; Can be one of the following: " + langs.Aggregate("", (o, e) => o + e.Key + ((langs.Last().Key == e.Key) ? "" : ", ")) + "\n" +
                         $"\t\tBy default it's \"orig\"\n" +
-                        $"\t-p <game> - OPTIONAL; Can be one of the following: " + games.Aggregate("", (o, e) => o + e.Key + ((games.Last().Key == e.Key) ? "" : ", ")) + "\n" +
+                        $"\t-g <game> - OPTIONAL; Can be one of the following: " + games.Aggregate("", (o, e) => o + e.Key + ((games.Last().Key == e.Key) ? "" : ", ")) + "\n" +
                         $"\t\tBy default it's \"aatri\"\n\n" +
                         $"\t-h - Shows this help\n" +
                         $"\t-b - Extracts or recreates by using the binary files instead of txt's");

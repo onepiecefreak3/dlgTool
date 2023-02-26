@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "dlgTool": {
+      "commandName": "Project",
+      "commandLineArgs": "-m extract -g aa4 -r us -p mes_all/mes_all.bin"
+    }
+  }
+}

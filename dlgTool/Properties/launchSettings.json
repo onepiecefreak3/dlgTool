@@ -2,7 +2,7 @@
   "profiles": {
     "dlgTool": {
       "commandName": "Project",
-      "commandLineArgs": "-m extract -g aa4 -r us -p mes_all/mes_all.bin"
+      "commandLineArgs": "-m create -f mdt -p \"H:\\Steam\\steamapps\\common\\Phoenix Wright Ace Attorney Trilogy\\PWAAT_Data\\StreamingAssets\\GS1\\scenario\\ev0_mes.txt\" -g aa1 -r us"
     }
   }
 }

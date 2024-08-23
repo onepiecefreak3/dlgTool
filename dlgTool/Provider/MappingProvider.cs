@@ -1,114 +1,87 @@
-﻿using System.Diagnostics;
-using System.Globalization;
-using System.Xml.Linq;
-using dlgTool.Models;
+﻿using System.Globalization;
 using dlgTool.Models.Provider;
-using Newtonsoft.Json;
 
 namespace dlgTool.Provider
 {
-    class MappingProvider
+    abstract class MappingProvider
     {
-        private const string MappingPath_ = "mappings";
-        private const string MappingFileFormat_ = "{0}_{1}.json";
-
-        private const string DefaultTagFormat_ = "{0:XX}";
+        private const string DefaultOpCodeFormat_ = "{0:X2}";
         private const int DefaultArgumentCount_ = 0;
 
-        private readonly IDictionary<int, Tag> _tags;
-        private readonly IDictionary<int, string> _characters;
-        private readonly IDictionary<string, Tag> _tagsReverse;
-        private readonly IDictionary<string, int> _charactersReverse;
-        private readonly int _minCharPoint;
+        private readonly IOpCodeProvider _opCodeProvider;
+        private readonly ICharacterProvider _characterProvider;
 
-        private MappingProvider(Mapping mapping)
+        protected MappingProvider(IOpCodeProvider opCodeProvider, ICharacterProvider _characterProvider)
         {
-            _tags = mapping.Tags;
-            _characters = mapping.Characters;
-            _tagsReverse = mapping.Tags.ToDictionary(x => x.Value.Name, y => y.Value);
-            _charactersReverse = mapping.Characters.GroupBy(p => p.Value).ToDictionary(x => x.Key, y => y.First().Key);
-            _minCharPoint = _characters?.Keys.Min() ?? 0;
-
-            foreach (var tag in mapping.Tags)
-                tag.Value.Id ??= tag.Key;
+            _opCodeProvider = opCodeProvider;
+            this._characterProvider = _characterProvider;
         }
 
         public bool IsControlCode(int value)
         {
-            return (_tags?.ContainsKey(value) ?? false) || value < _minCharPoint;
+            return _opCodeProvider.TryGet(value, out _) || value < _characterProvider.GetMinCode();
         }
 
         public bool IsControlCode(string name)
         {
-            if (_tagsReverse?.ContainsKey(name) ?? false)
+            if (_opCodeProvider.TryGet(name, out _))
                 return true;
 
-            if (int.TryParse(name, NumberStyles.HexNumber, CultureInfo.InvariantCulture, out var code))
-                return code < _minCharPoint;
+            if (int.TryParse(name, NumberStyles.HexNumber, CultureInfo.InvariantCulture, out int code))
+                return code < _characterProvider.GetMinCode();
 
             return false;
         }
 
-        public Tag MapControlCode(int code)
+        public OpCode MapControlCode(int code)
         {
-            if (_tags?.TryGetValue(code, out var tag) ?? false)
-                return tag;
+            if (_opCodeProvider.TryGet(code, out OpCode? opCode))
+                return opCode!;
 
-            return new Tag { Id = code, Name = string.Format(DefaultTagFormat_, code), ArgumentCount = DefaultArgumentCount_ };
+            return new OpCode
+            {
+                Id = code,
+                Name = string.Format(DefaultOpCodeFormat_, code),
+                ArgumentCount = DefaultArgumentCount_
+            };
         }
 
-        public Tag MapControlCode(string name)
+        public OpCode MapControlCode(string name)
         {
-            if (_tagsReverse?.TryGetValue(name, out var tag) ?? false)
-                return tag;
+            if (_opCodeProvider.TryGet(name, out OpCode? opCode))
+                return opCode!;
 
             if (name.StartsWith("0x"))
                 name = name[2..];
 
-            if (int.TryParse(name, NumberStyles.HexNumber, CultureInfo.InvariantCulture, out var code))
-                return new Tag { Id = code, Name = name, ArgumentCount = DefaultArgumentCount_ };
+            if (!int.TryParse(name, NumberStyles.HexNumber, CultureInfo.InvariantCulture, out int code))
+                throw new InvalidOperationException($"Tried mapping tag {name}.");
 
-            throw new InvalidOperationException($"Tried mapping tag {name}.");
+            return new OpCode
+            {
+                Id = code,
+                Name = name,
+                ArgumentCount = DefaultArgumentCount_
+            };
         }
 
         public string MapCharacter(int code)
         {
-            if (_characters?.TryGetValue(code, out var character) ?? false)
-                return character;
+            if (_characterProvider.TryGet(code, out string? character))
+                return character!;
 
-            if (_characters?.TryGetValue(_minCharPoint, out character) ?? false)
-                return character;
+            if (_characterProvider.TryGet(_characterProvider.GetMinCode(), out character))
+                return character!;
 
             throw new InvalidOperationException($"Tried mapping character {code}.");
         }
 
         public int MapCharacter(string character)
         {
-            if (_charactersReverse?.TryGetValue(character, out var code) ?? false)
+            if (_characterProvider.TryGet(character, out int code))
                 return code;
 
-            return _minCharPoint;
+            return _characterProvider.GetMinCode();
         }
-
-        #region Static methods
-
-        public static bool Exists(Game game, Region region)
-        {
-            return File.Exists(GetFilePath(game, region));
-        }
-
-        public static MappingProvider Load(Game game, Region region)
-        {
-            var mapping = JsonConvert.DeserializeObject<Mapping>(File.ReadAllText(GetFilePath(game, region)));
-            return new MappingProvider(mapping);
-        }
-
-        private static string GetFilePath(Game game, Region region)
-        {
-            var fileName = string.Format(MappingFileFormat_, game.ToString().ToLower(), region.ToString().ToLower());
-            return Path.Combine(MappingPath_, fileName);
-        }
-
-        #endregion
     }
 }

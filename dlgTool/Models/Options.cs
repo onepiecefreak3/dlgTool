@@ -18,6 +18,9 @@ namespace dlgTool.Models
         [Option('m', "mode", Required = true, HelpText = "Set the mode to execute in\n  extract: Extract .bin-Files to .txt-Files in a given path\n  create: Create .bin-Files from .txt-Files in a given path")]
         public string Mode { get; set; }
 
+        [Option('f', "format", Required = true, HelpText = "Set the format of the file to process\n  mesall: Defines mesall.bin's of 3DS Ace Attorney games.\n  mdt: Defines .mdt's of Ace Attorney HD games.")]
+        public string Format { get; set; }
+
         [Option('p', "path", Required = true, HelpText = "The path to process on. Has to be a file for 'extract' and a directory for 'create'")]
         public string Path { get; set; }
 
@@ -26,6 +29,8 @@ namespace dlgTool.Models
 
         [Option('r', "region", Required = true, HelpText = "The region of the game to process files from\n  jp\n  us\n  eu")]
         public string Region { get; set; }
+
+        public bool TryGetFormat(out Format format) => Enum.TryParse(Format, true, out format);
 
         public bool TryGetMode(out Mode mode) => Enum.TryParse(Mode, true, out mode);
 

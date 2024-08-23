@@ -2,7 +2,7 @@
 {
     class Mapping
     {
-        public IDictionary<int, Tag> Tags { get; set; }
+        public IDictionary<int, OpCode> OpCodes { get; set; }
         public IDictionary<int, string> Characters { get; set; }
     }
 }

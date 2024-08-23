@@ -4,7 +4,7 @@ using Kompression.Implementations;
 
 namespace dlgTool.Parser
 {
-    class MesAllWriter
+    class MesAllWriter : IWriter
     {
         private const string MesAllName_ = "mes_all.bin";
 

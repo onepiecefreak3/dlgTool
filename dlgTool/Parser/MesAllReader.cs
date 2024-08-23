@@ -4,7 +4,7 @@ using Kompression.Implementations;
 
 namespace dlgTool.Parser
 {
-    class MesAllReader
+    class MesAllReader : IReader
     {
         private readonly MappingProvider _provider;
 
@@ -75,6 +75,7 @@ namespace dlgTool.Parser
                 stream.Position = entry.Offset;
 
                 stream.Read(sectionBuffer);
+                ms.Write(sectionBuffer);
                 ss.Write(sectionBuffer);
                 ss.Position = 0;
 

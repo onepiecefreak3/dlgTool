@@ -2,7 +2,7 @@
 
 namespace dlgTool.Models.Provider
 {
-    class Tag
+    class OpCode
     {
         [JsonIgnore]
         public int? Id { get; set; }

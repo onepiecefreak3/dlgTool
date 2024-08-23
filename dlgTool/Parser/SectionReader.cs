@@ -83,7 +83,7 @@ namespace dlgTool.Parser
             for (var i = 0; i < offsetCount; i++)
             {
                 if (stream.Length - stream.Position < 8)
-                    throw new InvalidOperationException($"Tried to text offset. (Position={stream.Position})");
+                    throw new InvalidOperationException($"Tried to read text offset. (Position={stream.Position})");
 
                 stream.Read(buffer);
                 var value = GetInt32(buffer);

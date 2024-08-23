@@ -3,8 +3,6 @@ using CommandLine.Text;
 using dlgTool.Models;
 using dlgTool.Parser;
 using dlgTool.Provider;
-using System.IO;
-using System.Text;
 
 var parser = new Parser(parserSettings => parserSettings.AutoHelp = true);
 
@@ -33,6 +31,12 @@ void Execute(Options o)
         return;
     }
 
+    if (!o.TryGetFormat(out var format))
+    {
+        Console.WriteLine($"Unsupported format {o.Format}");
+        return;
+    }
+
     if (!o.TryGetGame(out var game))
     {
         Console.WriteLine($"Unsupported game {game}");
@@ -45,46 +49,97 @@ void Execute(Options o)
         return;
     }
 
-    if (!MappingProvider.Exists(game, region))
+    if (!TryGetMappingProvider(format, game, region, out MappingProvider? provider))
     {
         Console.WriteLine($"No mapping exists for game '{game.ToString().ToLower()}' in region '{region.ToString().ToLower()}'");
         return;
     }
 
-    var provider = MappingProvider.Load(game, region);
-
     switch (mode)
     {
         case Mode.Extract:
-            Extract(o.Path, provider);
+            Extract(o.Path, format, provider!);
             break;
 
         case Mode.Create:
-            Create(o.Path, provider);
+            Create(o.Path, format, provider!);
             break;
     }
 }
 
-void Extract(string path, MappingProvider provider)
+bool TryGetMappingProvider(Format format, Game game, Region region, out MappingProvider? provider)
+{
+    provider = null;
+
+    switch (format)
+    {
+        case Format.MesAll:
+            return MesAllMappingProvider.TryGet(game, region, out provider);
+
+        case Format.Mdt:
+            return MdtMappingProvider.TryGet(game, region, out provider);
+
+        default:
+            throw new InvalidOperationException($"Unknown format {format}.");
+    }
+
+    return true;
+}
+
+void Extract(string path, Format format, MappingProvider provider)
 {
     if (!File.Exists(path))
     {
         Console.WriteLine($"Path {path} has to be an existing file.");
         return;
     }
-    
-    var reader = new MesAllReader(provider);
+
+    IReader reader;
+    switch (format)
+    {
+        case Format.MesAll:
+            reader = new MesAllReader(provider);
+            break;
+
+        case Format.Mdt:
+            reader = new MdtReader(provider);
+            break;
+
+        default:
+            throw new InvalidOperationException($"Unknown format {format}.");
+    }
+
     reader.Read(path);
 }
 
-void Create(string path, MappingProvider provider)
+void Create(string path, Format format, MappingProvider provider)
 {
-    if (!Directory.Exists(path))
+    IWriter writer;
+    switch (format)
     {
-        Console.WriteLine($"Path {path} has to be an existing directory.");
-        return;
+        case Format.MesAll:
+            if (!Directory.Exists(path))
+            {
+                Console.WriteLine($"Path {path} has to be an existing directory.");
+                return;
+            }
+
+            writer = new MesAllWriter(provider);
+            break;
+
+        case Format.Mdt:
+            if (!File.Exists(path))
+            {
+                Console.WriteLine($"Path {path} has to be an existing file.");
+                return;
+            }
+
+            writer = new MdtWriter(provider);
+            break;
+
+        default:
+            throw new InvalidOperationException($"Unknown format {format}.");
     }
 
-    var reader = new MesAllWriter(provider);
-    reader.Write(path);
+    writer.Write(path);
 }
